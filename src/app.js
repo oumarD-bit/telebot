@@ -35,6 +35,9 @@ function detectPlatform(text) {
 const TEST_RECIPIENT_OVERRIDES = {
   '22559928005': '2250759928005',
   '22553785124': '2250153785124',
+  // Hypothèse non vérifiée (même motif que les deux précédents, pas testée par
+  // envoi réel) : à corriger si le wa_id réel diffère dans les logs d'erreur 131030.
+  '22558757152': '2250758757152',
 };
 
 function resolveRecipient(from) {

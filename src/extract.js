@@ -66,19 +66,28 @@ async function ensureWhatsAppCompatible(filePath) {
   const videoBitrate = Math.max(targetTotalBitrate - AUDIO_BITRATE_BPS, MIN_VIDEO_BITRATE_BPS);
 
   const outputPath = filePath.replace(/\.[^.]+$/, '') + '.h264.mp4';
-  await run('ffmpeg', [
-    '-y',
-    '-i', filePath,
-    '-c:v', 'libx264',
-    '-preset', 'veryfast',
-    '-b:v', String(Math.round(videoBitrate)),
-    '-maxrate', String(Math.round(videoBitrate * 1.2)),
-    '-bufsize', String(Math.round(videoBitrate * 2)),
-    '-c:a', 'aac',
-    '-b:a', String(AUDIO_BITRATE_BPS),
-    '-movflags', '+faststart',
-    outputPath,
-  ]);
+  await run(
+    'ffmpeg',
+    [
+      '-y',
+      '-i', filePath,
+      '-c:v', 'libx264',
+      // 'ultrafast' : sur un serveur à CPU limité (ex: tier gratuit Render, 0.1 CPU),
+      // 'veryfast' tournait à ~0.16x la vitesse réelle (une vidéo de 60s prenait
+      // ~6 minutes). 'ultrafast' sacrifie un peu de compression pour aller plus vite.
+      '-preset', 'ultrafast',
+      '-b:v', String(Math.round(videoBitrate)),
+      '-maxrate', String(Math.round(videoBitrate * 1.2)),
+      '-bufsize', String(Math.round(videoBitrate * 2)),
+      '-c:a', 'aac',
+      '-b:a', String(AUDIO_BITRATE_BPS),
+      '-movflags', '+faststart',
+      outputPath,
+    ],
+    // Timeout dédié plus généreux : sur un CPU très limité, le transcodage à lui
+    // seul peut dépasser le timeout par défaut de run() (120s).
+    { timeout: 600000 }
+  );
 
   fs.unlink(filePath, () => {});
   return outputPath;

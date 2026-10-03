@@ -7,7 +7,9 @@ FROM node:22-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg curl ca-certificates python3 make g++ \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -L -o /usr/local/bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+    # yt-dlp_linux (pas le script "yt-dlp" nu) : seul ce build autonome embarque
+    # curl_cffi, nécessaire pour l'impersonation anti-bot de TikTok.
+    && curl -L -o /usr/local/bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
     && chmod +x /usr/local/bin/yt-dlp
 
 WORKDIR /app

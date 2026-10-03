@@ -1,6 +1,7 @@
 const express = require('express');
 const { getAllUsers, getOrCreateUser, addFamilyMember, activatePremium, addCredits, firstName } = require('./db');
 const { sendText } = require('./whatsapp');
+const { resolveRecipient, canonicalId } = require('./test-recipient-overrides');
 
 const router = express.Router();
 
@@ -54,6 +55,7 @@ router.use(requireAuth);
 
 router.get('/', (req, res) => {
   const users = getAllUsers();
+  const erreur = req.query.erreur ? `<p style="color:#f87171;margin-top:1rem;">⚠️ ${escapeHtml(req.query.erreur)}</p>` : '';
 
   const rows = users
     .map(
@@ -113,6 +115,7 @@ router.get('/', (req, res) => {
     </label>
     <button type="submit">Activer</button>
     <p class="hint">La personne reçoit automatiquement un message WhatsApp de confirmation.</p>
+    ${erreur}
   </form>
 </body>
 </html>
@@ -120,12 +123,23 @@ router.get('/', (req, res) => {
 });
 
 router.post('/grant', express.urlencoded({ extended: true }), async (req, res) => {
-  const phoneNumber = (req.body.phone_number || '').replace(/[^0-9]/g, '');
+  const rawNumber = (req.body.phone_number || '').replace(/[^0-9]/g, '');
   const plan = GRANT_PLANS[req.body.plan];
 
-  if (!phoneNumber || !plan) {
+  if (!plan) {
     return res.redirect('/admin');
   }
+
+  // L'indicatif pays (ex: 225) est obligatoire pour que WhatsApp puisse
+  // livrer quoi que ce soit — un numéro local seul (ex: 0153785124, 10
+  // chiffres) échoue silencieusement à l'envoi sans ce préfixe.
+  if (rawNumber.length < 11) {
+    return res.redirect('/admin?erreur=' + encodeURIComponent("Numéro invalide : inclus l'indicatif pays (ex: 2250153785124), pas juste le numéro local."));
+  }
+
+  // Les deux formats (wa_id ou numéro complet) doivent pointer vers le même
+  // compte en base, qu'importe lequel l'admin a tapé.
+  const phoneNumber = canonicalId(rawNumber);
 
   if (req.body.plan === 'famille') {
     addFamilyMember(phoneNumber);
@@ -140,7 +154,7 @@ router.post('/grant', express.urlencoded({ extended: true }), async (req, res) =
 
   try {
     await sendText(
-      phoneNumber,
+      resolveRecipient(phoneNumber),
       `${greeting}, votre compte vient d'être activé par l'administrateur pour ${plan.label}. 🎉`
     );
   } catch (error) {

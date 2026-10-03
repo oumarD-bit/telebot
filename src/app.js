@@ -8,6 +8,7 @@ const { checkAccess } = require('./access');
 const { createPaymentLink, PLANS } = require('./payment');
 const { verifySignature } = require('./cartflox-webhook');
 const adminRouter = require('./admin');
+const { resolveRecipient } = require('./test-recipient-overrides');
 
 const app = express();
 app.use('/admin', adminRouter);
@@ -23,25 +24,6 @@ const PLATFORMS = [
 
 function detectPlatform(text) {
   return PLATFORMS.find((p) => p.pattern.test(text));
-}
-
-// Correspondance TEMPORAIRE, utile uniquement en mode Test : WhatsApp identifie
-// certains numéros ivoiriens pré-2021 par leur ancien format 8 chiffres (wa_id,
-// ex. 22559928005) dans message.from, alors que la liste blanche des destinataires
-// de test attend le format complet à 10 chiffres (ex. 2250759928005). Les deux
-// désignent le même compte, mais ne "matchent" pas tels quels côté API.
-// Cette restriction de liste blanche n'existe qu'en mode Test : avec un vrai
-// numéro de production (Phase 5), ce correctif devient inutile et sera supprimé.
-const TEST_RECIPIENT_OVERRIDES = {
-  '22559928005': '2250759928005',
-  '22553785124': '2250153785124',
-  // Hypothèse non vérifiée (même motif que les deux précédents, pas testée par
-  // envoi réel) : à corriger si le wa_id réel diffère dans les logs d'erreur 131030.
-  '22558757152': '2250758757152',
-};
-
-function resolveRecipient(from) {
-  return TEST_RECIPIENT_OVERRIDES[from] || from;
 }
 
 // Vérification du webhook, exigée par Meta lors de la configuration du Callback URL.

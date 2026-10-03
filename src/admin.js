@@ -1,7 +1,17 @@
 const express = require('express');
-const { getAllUsers, addFamilyMember } = require('./db');
+const { getAllUsers, getOrCreateUser, addFamilyMember, activatePremium, addCredits, firstName } = require('./db');
+const { sendText } = require('./whatsapp');
 
 const router = express.Router();
+
+// Formules que l'admin peut accorder manuellement (sans paiement Cartflox),
+// avec le libellé exact utilisé dans le message de confirmation WhatsApp.
+const GRANT_PLANS = {
+  famille: { label: 'un accès illimité permanent à toutes les plateformes (TikTok, Instagram, Facebook, X)' },
+  semaine: { label: 'le Pass Semaine (7 jours, accès illimité multi-plateforme)', days: 7 },
+  mensuel: { label: 'le Pass Mensuel (30 jours, accès illimité multi-plateforme)', days: 30 },
+  credits: { label: '50 crédits de téléchargement, valables sur toutes les plateformes', credits: 50 },
+};
 
 // Authentification HTTP Basic simple : un seul mot de passe admin, pas de
 // gestion de comptes/sessions nécessaire pour un outil interne mono-utilisateur.
@@ -72,9 +82,11 @@ router.get('/', (req, res) => {
   th, td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #334155; text-align: left; font-size: 0.9rem; }
   th { color: #94a3b8; font-weight: 600; }
   form { margin-top: 2rem; padding: 1rem; background: #1e293b; border-radius: 8px; max-width: 400px; }
-  input { padding: 0.5rem; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; width: 100%; box-sizing: border-box; margin-top: 0.25rem; }
-  button { margin-top: 0.75rem; padding: 0.5rem 1rem; border-radius: 6px; border: none; background: #22c55e; color: #052e16; font-weight: 600; cursor: pointer; }
+  label { display: block; margin-top: 0.75rem; font-size: 0.85rem; }
+  input, select { padding: 0.5rem; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; width: 100%; box-sizing: border-box; margin-top: 0.25rem; }
+  button { margin-top: 1rem; padding: 0.5rem 1rem; border-radius: 6px; border: none; background: #22c55e; color: #052e16; font-weight: 600; cursor: pointer; }
   .count { color: #94a3b8; font-size: 0.85rem; }
+  .hint { color: #64748b; font-size: 0.75rem; margin-top: 0.5rem; }
 </style>
 </head>
 <body>
@@ -87,22 +99,54 @@ router.get('/', (req, res) => {
     <tbody>${rows}</tbody>
   </table>
 
-  <form method="POST" action="/admin/family">
-    <label>Ajouter un numéro famille (accès illimité, sans paiement)
+  <form method="POST" action="/admin/grant">
+    <label>Numéro WhatsApp
       <input type="text" name="phone_number" placeholder="ex: 2250759928005" required>
     </label>
-    <button type="submit">Ajouter</button>
+    <label>Formule à activer
+      <select name="plan" required>
+        <option value="famille">Famille — illimité permanent</option>
+        <option value="semaine">Pass Semaine (7 jours)</option>
+        <option value="mensuel">Pass Mensuel (30 jours)</option>
+        <option value="credits">50 Crédits</option>
+      </select>
+    </label>
+    <button type="submit">Activer</button>
+    <p class="hint">La personne reçoit automatiquement un message WhatsApp de confirmation.</p>
   </form>
 </body>
 </html>
   `);
 });
 
-router.post('/family', express.urlencoded({ extended: true }), (req, res) => {
+router.post('/grant', express.urlencoded({ extended: true }), async (req, res) => {
   const phoneNumber = (req.body.phone_number || '').replace(/[^0-9]/g, '');
-  if (phoneNumber) {
-    addFamilyMember(phoneNumber);
+  const plan = GRANT_PLANS[req.body.plan];
+
+  if (!phoneNumber || !plan) {
+    return res.redirect('/admin');
   }
+
+  if (req.body.plan === 'famille') {
+    addFamilyMember(phoneNumber);
+  } else if (plan.days) {
+    activatePremium(phoneNumber, plan.days);
+  } else if (plan.credits) {
+    addCredits(phoneNumber, plan.credits);
+  }
+
+  const user = getOrCreateUser(phoneNumber);
+  const greeting = firstName(user) || 'Cher client';
+
+  try {
+    await sendText(
+      phoneNumber,
+      `${greeting}, votre compte vient d'être activé par l'administrateur pour ${plan.label}. 🎉`
+    );
+  } catch (error) {
+    console.error('Erreur envoi confirmation activation admin:', error.response?.data || error.message);
+  }
+
   res.redirect('/admin');
 });
 

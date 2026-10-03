@@ -34,6 +34,7 @@ function detectPlatform(text) {
 // numéro de production (Phase 5), ce correctif devient inutile et sera supprimé.
 const TEST_RECIPIENT_OVERRIDES = {
   '22559928005': '2250759928005',
+  '22553785124': '2250153785124',
 };
 
 function resolveRecipient(from) {

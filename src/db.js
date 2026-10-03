@@ -105,6 +105,26 @@ function firstName(user) {
   return user.nom.trim().split(/\s+/)[0];
 }
 
+// Tous les "clients" (numéros ayant écrit au bot au moins une fois), pour le
+// dashboard admin — les plus récemment actifs/créés en premier.
+function getAllUsers() {
+  return db.prepare('SELECT * FROM users ORDER BY derniere_reinit DESC, phone_number DESC').all();
+}
+
+// Numéro famille : accès Premium illimité dans le temps (10 ans, en pratique
+// permanent), sans passer par Cartflox. `statut` distingue ces comptes des
+// vrais abonnements payants dans le dashboard.
+const FAMILY_DURATION_DAYS = 365 * 10;
+function addFamilyMember(phoneNumber) {
+  getOrCreateUser(phoneNumber);
+  const expiresAt = new Date(Date.now() + FAMILY_DURATION_DAYS * MS_PER_DAY);
+  db.prepare('UPDATE users SET statut = ?, premium_jusqua = ? WHERE phone_number = ?').run(
+    'famille',
+    expiresAt.toISOString(),
+    phoneNumber
+  );
+}
+
 module.exports = {
   getOrCreateUser,
   isPremium,
@@ -114,6 +134,8 @@ module.exports = {
   addCredits,
   updateName,
   firstName,
+  getAllUsers,
+  addFamilyMember,
   FREE_WEEKLY_DOWNLOADS,
   RESET_PERIOD_DAYS,
 };

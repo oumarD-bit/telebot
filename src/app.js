@@ -7,8 +7,10 @@ const { getOrCreateUser, activatePremium, addCredits, updateName, firstName } = 
 const { checkAccess } = require('./access');
 const { createPaymentLink, PLANS } = require('./payment');
 const { verifySignature } = require('./cartflox-webhook');
+const adminRouter = require('./admin');
 
 const app = express();
+app.use('/admin', adminRouter);
 
 // yt-dlp gère nativement les 4 plateformes avec la même interface (extractVideo
 // ne dépend pas du site) : seul le routage/libellé côté message change ici.

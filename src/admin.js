@@ -86,10 +86,13 @@ router.get('/', (req, res) => {
   th { color: #94a3b8; font-weight: 600; }
   form { margin-top: 2rem; padding: 1rem; background: #1e293b; border-radius: 8px; max-width: 400px; }
   label { display: block; margin-top: 0.75rem; font-size: 0.85rem; }
-  input, select { padding: 0.5rem; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; width: 100%; box-sizing: border-box; margin-top: 0.25rem; }
+  input { padding: 0.5rem; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; width: 100%; box-sizing: border-box; margin-top: 0.25rem; }
   button { margin-top: 1rem; padding: 0.5rem 1rem; border-radius: 6px; border: none; background: #22c55e; color: #052e16; font-weight: 600; cursor: pointer; }
   .count { color: #94a3b8; font-size: 0.85rem; }
   .hint { color: #64748b; font-size: 0.75rem; margin-top: 0.5rem; }
+  .plan-choice { display: block; margin-top: 0.5rem; padding: 0.6rem 0.75rem; border-radius: 6px; border: 1px solid #475569; background: #0f172a; cursor: pointer; }
+  .plan-choice input { width: auto; margin: 0 0.5rem 0 0; }
+  .plan-choice:has(input:checked) { border-color: #22c55e; background: #052e16; }
 </style>
 </head>
 <body>
@@ -106,14 +109,11 @@ router.get('/', (req, res) => {
     <label>Numéro WhatsApp
       <input type="text" name="phone_number" placeholder="ex: 2250759928005" required>
     </label>
-    <label>Formule à activer
-      <select name="plan" required>
-        <option value="famille">Famille — illimité permanent</option>
-        <option value="semaine">Pass Semaine (7 jours)</option>
-        <option value="mensuel">Pass Mensuel (30 jours)</option>
-        <option value="credits">50 Crédits</option>
-      </select>
-    </label>
+    <p style="margin-top:0.75rem;font-size:0.85rem;">Formule à activer</p>
+    <label class="plan-choice"><input type="radio" name="plan" value="semaine" required> Pass Semaine (7 jours)</label>
+    <label class="plan-choice"><input type="radio" name="plan" value="mensuel"> Pass Mensuel (30 jours)</label>
+    <label class="plan-choice"><input type="radio" name="plan" value="credits"> 50 Crédits</label>
+    <label class="plan-choice"><input type="radio" name="plan" value="famille"> Famille — illimité permanent</label>
     <button type="submit">Activer</button>
     <p class="hint">La personne reçoit automatiquement un message WhatsApp de confirmation.</p>
     ${erreur}${succes}

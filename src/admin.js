@@ -56,6 +56,7 @@ router.use(requireAuth);
 router.get('/', (req, res) => {
   const users = getAllUsers();
   const erreur = req.query.erreur ? `<p style="color:#f87171;margin-top:1rem;">⚠️ ${escapeHtml(req.query.erreur)}</p>` : '';
+  const succes = req.query.succes ? `<p style="color:#4ade80;margin-top:1rem;">✅ ${escapeHtml(req.query.succes)}</p>` : '';
 
   const rows = users
     .map(
@@ -115,7 +116,7 @@ router.get('/', (req, res) => {
     </label>
     <button type="submit">Activer</button>
     <p class="hint">La personne reçoit automatiquement un message WhatsApp de confirmation.</p>
-    ${erreur}
+    ${erreur}${succes}
   </form>
 </body>
 </html>
@@ -161,7 +162,21 @@ router.post('/grant', express.urlencoded({ extended: true }), async (req, res) =
     console.error('Erreur envoi confirmation activation admin:', error.response?.data || error.message);
   }
 
-  res.redirect('/admin');
+  // Confirmation visible immédiatement sur le dashboard, basée sur l'état RÉEL
+  // en base après l'opération — pas une supposition sur ce qui a été cliqué.
+  const confirmation =
+    req.body.plan === 'credits'
+      ? `${phoneNumber} : ${user.credits} crédits au total`
+      : `${phoneNumber} : ${statutLabelPlain(req.body.plan)} jusqu'au ${formatDate(user.premium_jusqua)}`;
+
+  res.redirect('/admin?succes=' + encodeURIComponent(confirmation));
 });
+
+function statutLabelPlain(planKey) {
+  if (planKey === 'famille') return 'Famille (illimité)';
+  if (planKey === 'semaine') return 'Pass Semaine';
+  if (planKey === 'mensuel') return 'Pass Mensuel';
+  return planKey;
+}
 
 module.exports = router;

@@ -5,7 +5,7 @@ const CARTFLOX_API = 'https://cartflox.com/api/v1/checkout/sessions';
 // Montants en FCFA (XOF), cf. grille tarifaire définie avec l'utilisateur.
 const PLANS = {
   semaine: { amount: 500, currency: 'XOF', label: 'Pass Semaine (7 jours, illimité multi-plateforme)', days: 7 },
-  mensuel: { amount: 2000, currency: 'XOF', label: 'Pass Mensuel (30 jours, illimité + compression)', days: 30 },
+  mensuel: { amount: 2000, currency: 'XOF', label: 'Pass Mensuel (30 jours, illimité multi-plateforme)', days: 30 },
   credits: { amount: 1000, currency: 'XOF', label: '50 Crédits (valables sur toutes les plateformes)', credits: 50 },
 };
 
